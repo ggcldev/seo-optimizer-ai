@@ -1,0 +1,13 @@
+streamlit
+langchain
+langchain-groq
+# langchain-anthropic   # uncomment when switching to Claude
+scrapling
+googlesearch-python
+spacy
+yake
+keybert
+sentence-transformers
+gspread
+pandas
+google-auth
