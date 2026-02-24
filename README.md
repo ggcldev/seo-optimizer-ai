@@ -52,6 +52,88 @@ SEOptimizer AI/
     └── export.py                 # Markdown download + Google Sheets
 ```
 
+## Roadmap & TODO
+
+6 phases from code → fully live production app.
+
+---
+
+### Phase 1 — Local Environment Setup
+> Goal: get the app running on your machine
+
+- [ ] Install Python 3.10+
+- [ ] `pip install -r requirements.txt`
+- [ ] `python -m spacy download en_core_web_sm`
+- [ ] Copy `.streamlit/secrets.toml.example` → `.streamlit/secrets.toml`
+- [ ] Add `GROQ_API_KEY` to `secrets.toml` (get free key at [console.groq.com](https://console.groq.com))
+
+---
+
+### Phase 2 — Local Test Run
+> Goal: verify the full pipeline works end-to-end locally
+
+- [ ] `streamlit run app.py`
+- [ ] Enter a real URL + keyword and click **Run Analysis**
+- [ ] Confirm Google SERP returns 5–10 competitor URLs
+- [ ] Confirm competitor pages are scraped (word counts appear)
+- [ ] Confirm Gap Analysis tab renders with metrics table
+- [ ] Confirm Recommended Edits tab shows 8 prioritized edits
+- [ ] Confirm Diff View tab shows before/after changes highlighted
+- [ ] Confirm Markdown download works
+
+---
+
+### Phase 3 — Bug Fixes & Prompt Tuning
+> Goal: fix any issues found in Phase 2, tighten agent outputs
+
+- [ ] Fix any dependency / import errors
+- [ ] Fix any Scrapling scraping failures (switch to `DynamicFetcher` if needed)
+- [ ] Fix any LLM JSON parse errors (adjust prompts in `agents/`)
+- [ ] Tune Agent 1 prompt if audit score seems off
+- [ ] Tune Agent 2 prompt if edits are too vague or too aggressive
+- [ ] Tune Agent 3 prompt if editor rewrites instead of making inline edits
+- [ ] Handle edge case: page with very little body text
+
+---
+
+### Phase 4 — Google Sheets Export (Optional)
+> Goal: enable one-click export to Google Sheets
+
+- [ ] Create a Google Cloud project at [console.cloud.google.com](https://console.cloud.google.com)
+- [ ] Enable Google Sheets API and Google Drive API
+- [ ] Create a service account and download the JSON key
+- [ ] Add the service account JSON to `secrets.toml` under `[gcp_service_account]`
+- [ ] Test the **Export to Google Sheets** button in the Export tab
+- [ ] Verify rows appear in the generated spreadsheet
+
+---
+
+### Phase 5 — Streamlit Community Cloud Deployment
+> Goal: get the app live on a public URL
+
+- [ ] Go to [share.streamlit.io](https://share.streamlit.io) and sign in with GitHub
+- [ ] Click **New app** → select `ggcldev/seo-optimizer-ai`
+- [ ] Set **Main file path** to `app.py`
+- [ ] In **Settings → Secrets**, paste your `GROQ_API_KEY` (and `gcp_service_account` if using Sheets)
+- [ ] Check **Advanced → Python version** = 3.10 or 3.11
+- [ ] Add `packages.txt` if spaCy system deps fail to install (see Notes below)
+- [ ] Click **Deploy** and confirm the live URL works
+- [ ] Run a full analysis from the live URL to confirm cloud environment works
+
+---
+
+### Phase 6 — Switch to Claude (Upgrade Path)
+> Goal: replace Groq with Claude for higher quality outputs
+
+- [ ] Add `langchain-anthropic` to `requirements.txt`
+- [ ] Get an Anthropic API key at [console.anthropic.com](https://console.anthropic.com)
+- [ ] Add `ANTHROPIC_API_KEY` to `secrets.toml` and Streamlit Cloud Secrets
+- [ ] Update `config.py` (replace the `get_llm()` body — see **Switching to Claude** section below)
+- [ ] Re-run a full analysis and compare output quality vs Groq
+- [ ] Remove `langchain-groq` from `requirements.txt` when satisfied
+
+---
+
 ## Setup
 
 ### 1. Clone the repo
