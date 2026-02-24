@@ -4,8 +4,8 @@ Applies the recommended edits to the original text with minimal changes.
 Returns the full optimized text (not just the diff).
 """
 import json
-from langchain.prompts import PromptTemplate
-from langchain.chains import LLMChain
+from langchain_core.prompts import PromptTemplate
+from langchain_core.output_parsers import StrOutputParser
 
 from utils import truncate
 
@@ -48,11 +48,11 @@ def run_edit(llm, keyword: str, original_text: str, edits_result: dict) -> str:
         for e in sorted(edits, key=lambda x: x.get("priority", 99))
     )
 
-    chain = LLMChain(llm=llm, prompt=EDITOR_PROMPT)
-    result = chain.run(
-        keyword=keyword,
-        edits=edits_str,
-        original_text=truncate(original_text, 6000),
-    )
+    chain = EDITOR_PROMPT | llm | StrOutputParser()
+    result = chain.invoke({
+        "keyword": keyword,
+        "edits": edits_str,
+        "original_text": truncate(original_text, 6000),
+    })
 
     return result.strip() if result.strip() else original_text

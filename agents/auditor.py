@@ -3,8 +3,8 @@ Agent 1 — Content Auditor
 Analyzes your page vs SERP top-10 and returns a structured audit JSON.
 """
 import json
-from langchain.prompts import PromptTemplate
-from langchain.chains import LLMChain
+from langchain_core.prompts import PromptTemplate
+from langchain_core.runnables import RunnableSequence
 
 from utils import truncate
 
@@ -74,13 +74,13 @@ def run_audit(llm, keyword: str, your_page: dict, serp_pages: list[dict], gaps: 
 
     gaps_str = json.dumps(gaps, indent=2)
 
-    chain = LLMChain(llm=llm, prompt=AUDIT_PROMPT)
-    raw = chain.run(
-        keyword=keyword,
-        your_page=truncate(your_page_str, 3000),
-        serp_summary=truncate(serp_summary, 2000),
-        gaps=truncate(gaps_str, 1000),
-    )
+    chain = AUDIT_PROMPT | llm
+    raw = chain.invoke({
+        "keyword": keyword,
+        "your_page": truncate(your_page_str, 3000),
+        "serp_summary": truncate(serp_summary, 2000),
+        "gaps": truncate(gaps_str, 1000),
+    }).content
 
     try:
         # Strip any accidental markdown fences

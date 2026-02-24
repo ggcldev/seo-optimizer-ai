@@ -3,8 +3,8 @@ Agent 2 — Gap Analyzer
 Takes the audit result and produces a prioritized list of specific, actionable edits.
 """
 import json
-from langchain.prompts import PromptTemplate
-from langchain.chains import LLMChain
+from langchain_core.prompts import PromptTemplate
+from langchain_core.runnables import RunnableSequence
 
 from utils import truncate
 
@@ -58,13 +58,13 @@ def run_gap_analysis(llm, keyword: str, audit: dict, gaps: dict) -> dict:
     missing_kws = ", ".join(gaps.get("missing_keywords", [])[:15])
     missing_ents = ", ".join(gaps.get("missing_entities", [])[:15])
 
-    chain = LLMChain(llm=llm, prompt=GAP_PROMPT)
-    raw = chain.run(
-        keyword=keyword,
-        audit=truncate(audit_str, 3000),
-        missing_keywords=missing_kws or "none detected",
-        missing_entities=missing_ents or "none detected",
-    )
+    chain = GAP_PROMPT | llm
+    raw = chain.invoke({
+        "keyword": keyword,
+        "audit": truncate(audit_str, 3000),
+        "missing_keywords": missing_kws or "none detected",
+        "missing_entities": missing_ents or "none detected",
+    }).content
 
     try:
         clean = raw.strip().lstrip("```json").lstrip("```").rstrip("```").strip()
