@@ -1,23 +1,13 @@
 """
-Keyword and content analysis using spaCy, YAKE, and KeyBERT.
+Keyword and content analysis using YAKE and lightweight NER.
 """
-import spacy
+import re
 import yake
-from keybert import KeyBERT
 
 from utils import keyword_density
 
 # Lazy-load models (cached after first call)
-_nlp = None
 _kw_extractor = None
-_kbert = None
-
-
-def _get_nlp():
-    global _nlp
-    if _nlp is None:
-        _nlp = spacy.load("en_core_web_sm")
-    return _nlp
 
 
 def _get_yake():
@@ -29,11 +19,40 @@ def _get_yake():
     return _kw_extractor
 
 
-def _get_keybert():
-    global _kbert
-    if _kbert is None:
-        _kbert = KeyBERT()
-    return _kbert
+def _extract_entities(text: str) -> list[str]:
+    """
+    Lightweight named-entity extraction using capitalized phrase patterns.
+    Finds proper nouns and multi-word capitalized phrases (e.g. company names,
+    place names, product names) without requiring spaCy.
+    """
+    # Match sequences of 1-4 capitalized words (not at sentence start)
+    # e.g. "Google Search Console", "United States", "Neil Patel"
+    pattern = r'(?<=[.!?]\s|,\s|;\s|\n)([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,3})'
+    matches = re.findall(pattern, text)
+
+    # Also match mid-sentence capitalized phrases (more reliable indicator)
+    mid_pattern = r'(?<=\s)([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3})'
+    matches += re.findall(mid_pattern, text)
+
+    # Deduplicate and filter noise
+    stop_phrases = {
+        "The", "This", "That", "These", "Those", "There", "Here",
+        "However", "Therefore", "Moreover", "Furthermore", "Additionally",
+        "Meanwhile", "Nevertheless", "Although", "Because", "Since",
+        "While", "Where", "When", "Which", "What", "How", "Why",
+        "According", "Also", "Another", "Before", "After", "During",
+    }
+    seen = set()
+    entities = []
+    for m in matches:
+        m_clean = m.strip()
+        if m_clean and m_clean not in seen and m_clean.split()[0] not in stop_phrases:
+            seen.add(m_clean)
+            entities.append(m_clean)
+        if len(entities) >= 30:
+            break
+
+    return entities
 
 
 def analyze_content(text: str, keyword: str) -> dict:
@@ -46,7 +65,7 @@ def analyze_content(text: str, keyword: str) -> dict:
             "keyword_density": float,          # percentage
             "entities": list[str],             # unique named entities
             "top_keywords_yake": list[str],    # YAKE top-10 keyphrases
-            "semantic_keywords": list[str],    # KeyBERT top-10 semantically similar
+            "semantic_keywords": list[str],    # YAKE extended (top 11-20)
         }
     """
     if not text.strip():
@@ -61,30 +80,14 @@ def analyze_content(text: str, keyword: str) -> dict:
     word_count = len(text.split())
     density = keyword_density(text, keyword)
 
-    # spaCy entities
-    nlp = _get_nlp()
-    doc = nlp(text[:100_000])  # cap to avoid memory issues
-    entities = list({ent.text for ent in doc.ents if len(ent.text.split()) <= 4})[:30]
+    # Named entities via pattern matching
+    entities = _extract_entities(text)
 
-    # YAKE keywords
+    # YAKE keywords — top 10 primary, next 10 as "semantic"
     kw_extractor = _get_yake()
     yake_kws = kw_extractor.extract_keywords(text)
     top_keywords_yake = [kw for kw, _score in yake_kws[:10]]
-
-    # KeyBERT semantic keywords
-    try:
-        kbert = _get_keybert()
-        semantic_raw = kbert.extract_keywords(
-            text,
-            keyphrase_ngram_range=(1, 3),
-            stop_words="english",
-            use_maxsum=True,
-            nr_candidates=20,
-            top_n=10,
-        )
-        semantic_keywords = [kw for kw, _score in semantic_raw]
-    except Exception:
-        semantic_keywords = []
+    semantic_keywords = [kw for kw, _score in yake_kws[10:20]]
 
     return {
         "word_count": word_count,

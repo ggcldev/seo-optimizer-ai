@@ -5,11 +5,7 @@ langchain-groq
 curl-cffi
 beautifulsoup4
 googlesearch-python
-spacy
-https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl
 yake
-keybert
-sentence-transformers
 gspread
 pandas
 google-auth
