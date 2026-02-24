@@ -2,8 +2,8 @@ streamlit
 langchain
 langchain-groq
 # langchain-anthropic   # uncomment when switching to Claude
-scrapling
 curl-cffi
+beautifulsoup4
 googlesearch-python
 spacy
 yake

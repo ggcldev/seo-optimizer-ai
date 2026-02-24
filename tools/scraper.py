@@ -1,8 +1,9 @@
 """
-Page scraper using Scrapling Fetcher.
+Page scraper using curl_cffi + BeautifulSoup.
 Extracts title, H1, H2s, body text, and word count from a URL.
 """
-from scrapling.fetchers import Fetcher
+from curl_cffi import requests as curl_requests
+from bs4 import BeautifulSoup
 
 from utils import clean_text
 
@@ -43,37 +44,39 @@ def fetch_page(url: str) -> dict:
     }
 
     try:
-        page = Fetcher().fetch(url)
+        resp = curl_requests.get(url, impersonate="chrome", timeout=15)
+        resp.raise_for_status()
+        page = BeautifulSoup(resp.text, "html.parser")
     except Exception as e:
         result["error"] = str(e)
         return result
 
     try:
-        result["title"] = page.find("title").text or ""
+        result["title"] = page.find("title").get_text() or ""
     except Exception:
         pass
 
     try:
-        result["h1"] = page.find("h1").text or ""
+        result["h1"] = page.find("h1").get_text() or ""
     except Exception:
         pass
 
     try:
-        result["h2s"] = [el.text for el in page.find_all("h2") if el.text.strip()]
+        result["h2s"] = [el.get_text() for el in page.find_all("h2") if el.get_text(strip=True)]
     except Exception:
         pass
 
     # Strip noise elements before extracting body text
     for selector in _NOISE_SELECTORS:
         try:
-            for el in page.find_all(selector):
-                el.remove()
+            for el in page.select(selector):
+                el.decompose()
         except Exception:
             pass
 
     try:
         body = page.find("body")
-        raw_text = body.text if body else page.text
+        raw_text = body.get_text() if body else page.get_text()
         result["body_text"] = clean_text(raw_text)
         result["word_count"] = len(result["body_text"].split())
     except Exception as e:
