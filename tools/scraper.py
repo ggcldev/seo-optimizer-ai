@@ -1,9 +1,8 @@
 """
-Page scraper using Scrapling StealthyFetcher.
+Page scraper using Scrapling Fetcher.
 Extracts title, H1, H2s, body text, and word count from a URL.
-Falls back to basic Fetcher on failure.
 """
-from scrapling.fetchers import StealthyFetcher, Fetcher
+from scrapling.fetchers import Fetcher
 
 from utils import clean_text
 
@@ -44,13 +43,10 @@ def fetch_page(url: str) -> dict:
     }
 
     try:
-        page = StealthyFetcher().fetch(url, stealthy_headers=True)
+        page = Fetcher().fetch(url)
     except Exception as e:
-        try:
-            page = Fetcher().fetch(url)
-        except Exception as e2:
-            result["error"] = f"StealthyFetcher: {e} | Fetcher: {e2}"
-            return result
+        result["error"] = str(e)
+        return result
 
     try:
         result["title"] = page.find("title").text or ""
